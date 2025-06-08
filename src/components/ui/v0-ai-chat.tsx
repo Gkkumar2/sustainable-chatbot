@@ -13,6 +13,7 @@ import {
     Wind,
 } from "lucide-react";
 import { useChat, type Message } from "@/hooks/useChat";
+import React from "react";
 
 interface UseAutoResizeTextareaProps {
     minHeight: number;
@@ -47,22 +48,57 @@ function ChatMessage({ message }: { message: Message }) {
     // Function to format text with markdown-style formatting
     const formatText = (text: string) => {
         // Replace **text** with bold spans
-        return text.split(/(\*\*[^*]+\*\*)/).map((part, index) => {
+        const boldFormatted = text.split(/(\*\*[^*]+\*\*)/).map((part, index) => {
             if (part.startsWith('**') && part.endsWith('**')) {
                 return <strong key={index} className="font-semibold">{part.slice(2, -2)}</strong>;
             }
             return part;
         });
+
+        // Replace • with a more visually appealing bullet point
+        return boldFormatted.map(part => 
+            typeof part === 'string' 
+                ? part.split('•').map((text, i) => 
+                    i === 0 ? text : <React.Fragment key={i}>•{text}</React.Fragment>
+                  )
+                : part
+        );
     };
 
     // Function to format message content with better layout
     const formatMessageContent = (content: string) => {
+        // Check if this is an off-topic response
+        if (content.startsWith("I apologize, but I am designed to only discuss sustainability")) {
+            const [apology, topicsList] = content.split("Here are the topics I can help you with instead:");
+            
+            return (
+                <div className="space-y-4">
+                    <p className="text-yellow-700 dark:text-yellow-300">
+                        {formatText(apology.trim())}
+                    </p>
+                    <div className="space-y-2">
+                        <h3 className="font-medium text-gray-900 dark:text-white">
+                            Here are the topics I can help you with instead:
+                        </h3>
+                        <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
+                            {topicsList.split('•').filter(Boolean).map((topic, i) => (
+                                <li key={i} className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                                    <span className="text-green-600 dark:text-green-400">•</span>
+                                    {formatText(topic.trim())}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            );
+        }
+
         // Split content into sections by double newlines
         const sections = content.split('\n\n').filter(Boolean);
         
         return sections.map((section, index) => {
-            // Check if section starts with an emoji and title pattern (e.g., "🚗 Transportation")
-            const titleMatch = section.match(/^([🚗🏠🌳🥗♻️🌿🌊💡🚶‍♂️🔋📱🛍️🌱🌍👋]\s+)?([^\n]+)/);
+            // Check if section starts with an emoji and title pattern
+            const titleMatch = section.match(/^([🌱🌍♻️🌿🌊💡🚶‍♂️🔋📱🛍️🌳🏠]\s+)?([^\n]+)/);
             const isList = section.includes('\n•') || section.includes('\n-') || section.includes('\n*');
             
             if (titleMatch && isList) {
@@ -79,16 +115,17 @@ function ChatMessage({ message }: { message: Message }) {
                             {emoji && <span>{emoji}</span>}
                             <span>{formatText(title)}</span>
                         </h3>
-                        <ul className="list-disc list-inside space-y-1.5 ml-6">
+                        <ul className="space-y-1.5 ml-4">
                             {listItems.map((item, i) => (
-                                <li key={i} className="text-gray-600 dark:text-gray-300">
-                                    {formatText(item.trim())}
+                                <li key={i} className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
+                                    <span className="text-green-600 dark:text-green-400 mt-1">•</span>
+                                    <span>{formatText(item.trim())}</span>
                                 </li>
                             ))}
                         </ul>
                     </div>
                 );
-            } else if (titleMatch && !isList) {
+            } else if (titleMatch) {
                 // It's just a title section
                 return (
                     <h3 key={index} className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
@@ -100,10 +137,11 @@ function ChatMessage({ message }: { message: Message }) {
                 // It's just a list without title
                 const items = section.split(/\n[•\-\*]\s*/).filter(Boolean);
                 return (
-                    <ul key={index} className="list-disc list-inside space-y-1.5 ml-6">
+                    <ul key={index} className="space-y-1.5 ml-4">
                         {items.map((item, i) => (
-                            <li key={i} className="text-gray-600 dark:text-gray-300">
-                                {formatText(item.trim())}
+                            <li key={i} className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
+                                <span className="text-green-600 dark:text-green-400 mt-1">•</span>
+                                <span>{formatText(item.trim())}</span>
                             </li>
                         ))}
                     </ul>
@@ -122,7 +160,7 @@ function ChatMessage({ message }: { message: Message }) {
     return (
         <div className={cn(
             "py-6 animate-in fade-in slide-in-from-bottom-2 duration-300",
-            isUser ? "bg-white dark:bg-neutral-950" : "bg-gray-50/50 dark:bg-neutral-900/50"
+            isUser ? "bg-white dark:bg-neutral-950" : "bg-white dark:bg-neutral-950"
         )}>
             <div className="max-w-4xl mx-auto px-4 flex gap-6">
                 <div className="w-8 h-8 flex-shrink-0 mt-1">
@@ -136,15 +174,13 @@ function ChatMessage({ message }: { message: Message }) {
                         </div>
                     )}
                 </div>
-                <div className="min-w-0 space-y-1">
+                <div className="min-w-0 space-y-2 flex-1">
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {isUser ? "You" : "EcoChat"}
                     </p>
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <div className="prose prose-sm dark:prose-invert max-w-none space-y-4">
                         {!isUser ? (
-                            <div className="space-y-4">
-                                {formatMessageContent(message.content)}
-                            </div>
+                            formatMessageContent(message.content)
                         ) : (
                             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
                                 {message.content}

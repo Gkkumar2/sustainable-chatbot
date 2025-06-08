@@ -37,7 +37,11 @@ export async function POST(request: Request) {
         model: 'deepseek/deepseek-r1-0528:free',
         messages: messages,
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: 4000,
+        top_p: 1,
+        frequency_penalty: 0,
+        presence_penalty: 0,
+        stream: false
       }),
     });
 
